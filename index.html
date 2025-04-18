@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mental Health Prediction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(to right, #36d1dc, #5b86e5);
+            animation: fadeIn 1s ease-in-out;
+            position: relative; /* For absolute positioning */
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .container {
+            background: #ebf7f6;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 400px;
+            animation: slideUp 0.8s ease-in-out;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        h2 {
+            color: #333;
+        }
+        label {
+            display: block;
+            text-align: left;
+            margin: 5px 0 2px;
+            color: #555;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            transition: 0.3s;
+            box-sizing: border-box;
+        }
+        input:focus, select:focus {
+            border-color: #5b86e5;
+            box-shadow: 0 0 8px rgba(91, 134, 229, 0.6);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            border: none;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #0056b3;
+            transform: scale(1.05);
+        }
+        #result, #probabilities, #disclaimer, #model-accuracy {
+            margin-top: 10px;
+            color: #333;
+        }
+        #result {
+            font-weight: bold;
+            color: #007bff;
+        }
+        #probabilities table {
+            width: 100%;
+            margin-top: 10px;
+            border-collapse: collapse;
+        }
+        #probabilities th, #probabilities td {
+            padding: 5px;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+        #probabilities th {
+            background: #f0f0f0;
+        }
+        #disclaimer {
+            font-style: italic;
+            color: #e74c3c;
+        }
+        #model-accuracy {
+            font-size: 0.9em;
+            color: #555;
+        }
+        /* Styles for corner buttons */
+        .corner-buttons {
+            position: absolute;
+            top: 40px; /* Adjusted to avoid overlap with running note */
+            right: 10px;
+            display: flex;
+            flex-direction: column; /* Stack buttons vertically */
+            gap: 10px; /* Space between buttons */
+        }
+        .corner-button {
+            padding: 10px 20px;
+            background: #00ddff;
+            color: Black;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            text-decoration: none; /* Remove underline from links */
+            display: block; /* Ensure buttons take full width of container */
+        }
+        .corner-button:hover {
+            background: #0056b3;
+            transform: scale(1.05);
+        }
+        /* Styles for running note */
+        .running-note {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.7); /* Semi-transparent black background */
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .running-note span {
+            display: inline-block;
+            padding-left: 100%; /* Start off-screen */
+            animation: scroll 25s linear infinite; /* Scroll animation */
+        }
+        @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+    </style>
+    <script>
+        function predictMentalHealth() {
+            const form = document.getElementById('predictionForm');
+            const formData = new FormData(form);
+            
+            const data = {
+                Sentiment_Score: parseFloat(formData.get('Sentiment_Score')),
+                HRV: parseFloat(formData.get('HRV')),
+                Sleep_Hours: parseFloat(formData.get('Sleep_Hours')),
+                Activity: parseInt(formData.get('Activity')),
+                Age: parseInt(formData.get('Age')),
+                Gender: formData.get('Gender'),
+                Work_Study_Hours: parseFloat(formData.get('Work_Study_Hours'))
+            };
+            
+            if (isNaN(data.Sentiment_Score) || data.Sentiment_Score < 0 || data.Sentiment_Score > 1) {
+                document.getElementById('result').innerText = 'Error: Sentiment Score must be between 0 and 1';
+                return;
+            }
+            if (isNaN(data.HRV) || data.HRV < 0) {
+                document.getElementById('result').innerText = 'Error: HRV cannot be negative';
+                return;
+            }
+            if (isNaN(data.Sleep_Hours) || data.Sleep_Hours < 0) {
+                document.getElementById('result').innerText = 'Error: Sleep Hours cannot be negative';
+                return;
+            }
+            if (isNaN(data.Activity) || data.Activity < 0) {
+                document.getElementById('result').innerText = 'Error: Activity cannot be negative';
+                return;
+            }
+            if (isNaN(data.Age) || data.Age < 0) {
+                document.getElementById('result').innerText = 'Error: Age cannot be negative';
+                return;
+            }
+            if (isNaN(data.Work_Study_Hours) || data.Work_Study_Hours < 0) {
+                document.getElementById('result').innerText = 'Error: Work/Study Hours cannot be negative';
+                return;
+            }
+            
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.prediction) {
+                    document.getElementById('result').innerText = 'Prediction: ' + data.prediction;
+                    const probsTable = document.getElementById('probabilities-table');
+                    probsTable.innerHTML = '';
+                    for (const [status, prob] of Object.entries(data.probabilities)) {
+                        const row = probsTable.insertRow();
+                        row.insertCell(0).innerText = status;
+                        row.insertCell(1).innerText = (prob * 100).toFixed(2) + '%';
+                    }
+                    document.getElementById('disclaimer').innerText = data.disclaimer || '';
+                    document.getElementById('model-accuracy').innerText = data.model_accuracy;
+                } else {
+                    document.getElementById('result').innerText = 'Error: ' + data.error;
+                    document.getElementById('probabilities-table').innerHTML = '';
+                    document.getElementById('disclaimer').innerText = '';
+                    document.getElementById('model-accuracy').innerText = '';
+                }
+            })
+            .catch(error => {
+                document.getElementById('result').innerText = 'Request failed';
+                document.getElementById('probabilities-table').innerHTML = '';
+                document.getElementById('disclaimer').innerText = '';
+                document.getElementById('model-accuracy').innerText = '';
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</head>
+<body>
+    <!-- Running note at top-middle -->
+    <div class="running-note">
+        <span>🔴 If your mental health state is HIGH, do not rely solely on this model. Please seek guidance from a qualified doctor, therapist, or mental health expert immediately. Your well-being is a priority. </span>
+    </div>
+
+    <!-- Container for all three buttons in top-right corner -->
+    <div class="corner-buttons">
+        <a href="https://drive.google.com/file/d/1Hw6rPJr3__-2Bm3OjLbeQ8d7aCemkRKe/view?usp=sharing" target="_blank" class="corner-button">HIGH state</a>
+        <a href="https://drive.google.com/file/d/1NizreiiJS0jtd5avQcwilrJPRPF7CpmN/view?usp=sharing" target="_blank" class="corner-button">MEDIUM state</a>
+        <a href="https://drive.google.com/file/d/1LUCPIfqEJlliE1R2bM3wpEqAkZ_-3OsK/view?usp=sharing" target="_blank" class="corner-button">LOW state</a>
+    </div>
+
+    <div class="container">
+        <h2>Mental Health Prediction</h2>
+        <form id="predictionForm" onsubmit="event.preventDefault(); predictMentalHealth();">
+            <label>Sentiment Score (0 to 1):</label>
+            <input type="number" step="0.01" name="Sentiment_Score" required>
+            
+            <label>HRV (Heart Rate Variability):</label>
+            <input type="number" step="0.01" name="HRV" required>
+            
+            <label>Sleep Hours:</label>
+            <input type="number" step="0.1" name="Sleep_Hours" required>
+            
+            <label>Activity (Steps/Day):</label>
+            <input type="number" name="Activity" required>
+            
+            <label>Age:</label>
+            <input type="number" name="Age" required>
+            
+            <label>Gender:</label>
+            <select name="Gender" required>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+            </select>
+            
+            <label>Work/Study Hours:</label>
+            <input type="number" step="0.1" name="Work_Study_Hours" required>
+            
+            <button type="submit">Predict</button>
+        </form>
+        <h3 id="result"></h3>
+        <div id="probabilities">
+            <table id="probabilities-table">
+                <tr><th>Status</th><th>Probability</th></tr>
+            </table>
+        </div>
+        <div id="disclaimer"></div>
+        <div id="model-accuracy"></div>
+    </div>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9292519268c48d9c',t:'MTc0MzQ1MDAyNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
