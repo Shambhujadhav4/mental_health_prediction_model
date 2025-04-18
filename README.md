@@ -1,10 +1,11 @@
----
+ HEAD
+
 tags:
   - mental-health
   - xgboost
   - flask
 license: mit
----
+
 
 # Mental Health Prediction Model
 ## Overview
@@ -20,3 +21,7 @@ This project predicts mental health status (Low, Moderate, High) using a Flask a
 1. Install dependencies: `pip install -r requirements.txt`
 2. Run the app: `python app.py`
 3. Access at `http://localhost:5000`
+=======
+# MENTAL_HEALTH_PREDICTION_MODEL
+mental health prediction model can probably predict your mental health .
+f969aed3810a0d28afecabcbd8196cea39c1f9da
