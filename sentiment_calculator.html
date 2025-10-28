@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Score Calculator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(to right, #36d1dc, #5b86e5);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .method-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        
+        .method-section h3 {
+            color: #007bff;
+            margin-top: 0;
+        }
+        
+        textarea, input, select {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .result.positive {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .result.negative {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .result.neutral {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .score-display {
+            font-size: 24px;
+            margin: 10px 0;
+        }
+        
+        .interpretation {
+            font-size: 14px;
+            margin-top: 10px;
+            font-weight: normal;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 Sentiment Score Calculator</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">
+            Calculate sentiment scores for mental health prediction using multiple methods
+        </p>
+        
+        <!-- Method 1: Text Analysis -->
+        <div class="method-section">
+            <h3>📝 Method 1: Text Sentiment Analysis</h3>
+            <p>Analyze the emotional tone of text input (diary entries, thoughts, etc.)</p>
+            <textarea id="textInput" placeholder="Enter your thoughts, feelings, or diary entry here...&#10;&#10;Example: 'I feel great today! I had a wonderful time with my friends and I'm excited about my new project.'"></textarea>
+            <button onclick="calculateTextSentiment()">Analyze Text Sentiment</button>
+            <div id="textResult" class="result" style="display: none;"></div>
+        </div>
+        
+        <!-- Method 2: Behavioral Analysis -->
+        <div class="method-section">
+            <h3>🏃 Method 2: Behavioral Sentiment Analysis</h3>
+            <p>Calculate sentiment based on daily activities and behaviors</p>
+            <div class="grid">
+                <div>
+                    <label>Sleep Hours:</label>
+                    <input type="number" id="sleepHours" min="0" max="24" step="0.5" value="8">
+                </div>
+                <div>
+                    <label>Activity Level:</label>
+                    <select id="activityLevel">
+                        <option value="low">Low</option>
+                        <option value="moderate" selected>Moderate</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Social Interaction:</label>
+                    <select id="socialInteraction">
+                        <option value="low">Low</option>
+                        <option value="moderate" selected>Moderate</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Work Stress:</label>
+                    <select id="workStress">
+                        <option value="low">Low</option>
+                        <option value="moderate" selected>Moderate</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="calculateBehavioralSentiment()">Analyze Behavioral Sentiment</button>
+            <div id="behaviorResult" class="result" style="display: none;"></div>
+        </div>
+        
+        <!-- Method 3: Survey Analysis -->
+        <div class="method-section">
+            <h3>📊 Method 3: Survey-Based Sentiment</h3>
+            <p>Calculate sentiment from mental health survey responses</p>
+            <div class="grid">
+                <div>
+                    <label>Mood Today:</label>
+                    <select id="moodToday">
+                        <option value="very_poor">Very Poor</option>
+                        <option value="poor">Poor</option>
+                        <option value="fair">Fair</option>
+                        <option value="good" selected>Good</option>
+                        <option value="excellent">Excellent</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Energy Level:</label>
+                    <select id="energyLevel">
+                        <option value="very_low">Very Low</option>
+                        <option value="low">Low</option>
+                        <option value="moderate" selected>Moderate</option>
+                        <option value="high">High</option>
+                        <option value="very_high">Very High</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Stress Level:</label>
+                    <select id="stressLevel">
+                        <option value="very_low">Very Low</option>
+                        <option value="low">Low</option>
+                        <option value="moderate" selected>Moderate</option>
+                        <option value="high">High</option>
+                        <option value="very_high">Very High</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Sleep Quality:</label>
+                    <select id="sleepQuality">
+                        <option value="very_poor">Very Poor</option>
+                        <option value="poor">Poor</option>
+                        <option value="fair">Fair</option>
+                        <option value="good" selected>Good</option>
+                        <option value="excellent">Excellent</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="calculateSurveySentiment()">Analyze Survey Sentiment</button>
+            <div id="surveyResult" class="result" style="display: none;"></div>
+        </div>
+        
+        <!-- Combined Analysis -->
+        <div class="method-section">
+            <h3>🔄 Combined Sentiment Analysis</h3>
+            <p>Get a comprehensive sentiment score using all available data</p>
+            <button onclick="calculateCombinedSentiment()">Calculate Combined Sentiment</button>
+            <div id="combinedResult" class="result" style="display: none;"></div>
+        </div>
+        
+        <!-- Instructions -->
+        <div class="method-section">
+            <h3>📖 How to Use</h3>
+            <ul>
+                <li><strong>Text Analysis:</strong> Enter your thoughts, feelings, or diary entries. The system will analyze the emotional tone.</li>
+                <li><strong>Behavioral Analysis:</strong> Input your daily activities and behaviors to get a sentiment score based on lifestyle patterns.</li>
+                <li><strong>Survey Analysis:</strong> Answer mental health survey questions to get a structured sentiment assessment.</li>
+                <li><strong>Combined Analysis:</strong> Use all available data for the most comprehensive sentiment score.</li>
+            </ul>
+            <p><strong>Score Interpretation:</strong></p>
+            <ul>
+                <li><strong>0.0 - 0.3:</strong> Negative sentiment (Low mental health)</li>
+                <li><strong>0.3 - 0.7:</strong> Neutral sentiment (Moderate mental health)</li>
+                <li><strong>0.7 - 1.0:</strong> Positive sentiment (High mental health)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Simple sentiment analysis functions (client-side)
+        
+        function calculateTextSentiment() {
+            const text = document.getElementById('textInput').value.trim();
+            if (!text) {
+                alert('Please enter some text to analyze.');
+                return;
+            }
+            
+            const score = analyzeTextSentiment(text);
+            displayResult('textResult', score, 'Text Sentiment');
+        }
+        
+        function calculateBehavioralSentiment() {
+            const activities = {
+                sleep_hours: parseFloat(document.getElementById('sleepHours').value),
+                activity_level: document.getElementById('activityLevel').value,
+                social_interaction: document.getElementById('socialInteraction').value,
+                work_stress: document.getElementById('workStress').value
+            };
+            
+            const score = analyzeBehavioralSentiment(activities);
+            displayResult('behaviorResult', score, 'Behavioral Sentiment');
+        }
+        
+        function calculateSurveySentiment() {
+            const survey = {
+                mood_today: document.getElementById('moodToday').value,
+                energy_level: document.getElementById('energyLevel').value,
+                stress_level: document.getElementById('stressLevel').value,
+                sleep_quality: document.getElementById('sleepQuality').value
+            };
+            
+            const score = analyzeSurveySentiment(survey);
+            displayResult('surveyResult', score, 'Survey Sentiment');
+        }
+        
+        function calculateCombinedSentiment() {
+            const text = document.getElementById('textInput').value.trim();
+            const activities = {
+                sleep_hours: parseFloat(document.getElementById('sleepHours').value),
+                activity_level: document.getElementById('activityLevel').value,
+                social_interaction: document.getElementById('socialInteraction').value,
+                work_stress: document.getElementById('workStress').value
+            };
+            const survey = {
+                mood_today: document.getElementById('moodToday').value,
+                energy_level: document.getElementById('energyLevel').value,
+                stress_level: document.getElementById('stressLevel').value,
+                sleep_quality: document.getElementById('sleepQuality').value
+            };
+            
+            let scores = [];
+            let weights = [];
+            
+            if (text) {
+                const textScore = analyzeTextSentiment(text);
+                scores.push(textScore);
+                weights.push(0.4);
+            }
+            
+            const behaviorScore = analyzeBehavioralSentiment(activities);
+            scores.push(behaviorScore);
+            weights.push(0.3);
+            
+            const surveyScore = analyzeSurveySentiment(survey);
+            scores.push(surveyScore);
+            weights.push(0.3);
+            
+            const combinedScore = scores.reduce((sum, score, index) => sum + score * weights[index], 0) / weights.reduce((sum, weight) => sum + weight, 0);
+            
+            displayResult('combinedResult', combinedScore, 'Combined Sentiment');
+        }
+        
+        function analyzeTextSentiment(text) {
+            const positiveWords = ['good', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'happy', 'joy', 'love', 'like', 'enjoy', 'pleased', 'satisfied', 'positive', 'optimistic', 'hopeful', 'confident', 'energetic', 'motivated', 'excited', 'grateful', 'thankful', 'blessed'];
+            const negativeWords = ['bad', 'terrible', 'awful', 'horrible', 'disgusting', 'hate', 'sad', 'depressed', 'angry', 'frustrated', 'annoyed', 'upset', 'negative', 'pessimistic', 'hopeless', 'worried', 'anxious', 'stressed', 'tired', 'exhausted', 'lonely', 'isolated'];
+            
+            const words = text.toLowerCase().split(/\s+/);
+            let positiveCount = 0;
+            let negativeCount = 0;
+            
+            words.forEach(word => {
+                if (positiveWords.includes(word)) positiveCount++;
+                if (negativeWords.includes(word)) negativeCount++;
+            });
+            
+            if (positiveCount + negativeCount === 0) return 0.5;
+            
+            const rawScore = (positiveCount - negativeCount) / (positiveCount + negativeCount);
+            return (rawScore + 1) / 2; // Convert from -1,1 to 0,1
+        }
+        
+        function analyzeBehavioralSentiment(activities) {
+            let score = 0.5;
+            
+            // Sleep impact
+            const sleepHours = activities.sleep_hours;
+            if (sleepHours >= 7 && sleepHours <= 9) score += 0.1;
+            else if (sleepHours < 6 || sleepHours > 10) score -= 0.1;
+            
+            // Activity level impact
+            const activityScores = { low: -0.1, moderate: 0.0, high: 0.1 };
+            score += activityScores[activities.activity_level] || 0;
+            
+            // Social interaction impact
+            const socialScores = { low: -0.15, moderate: 0.0, high: 0.15 };
+            score += socialScores[activities.social_interaction] || 0;
+            
+            // Work stress impact
+            const stressScores = { low: 0.1, moderate: 0.0, high: -0.15 };
+            score += stressScores[activities.work_stress] || 0;
+            
+            return Math.max(0, Math.min(1, score));
+        }
+        
+        function analyzeSurveySentiment(survey) {
+            const questionScores = {
+                mood_today: { very_poor: 0.0, poor: 0.25, fair: 0.5, good: 0.75, excellent: 1.0 },
+                energy_level: { very_low: 0.0, low: 0.25, moderate: 0.5, high: 0.75, very_high: 1.0 },
+                stress_level: { very_high: 0.0, high: 0.25, moderate: 0.5, low: 0.75, very_low: 1.0 },
+                sleep_quality: { very_poor: 0.0, poor: 0.25, fair: 0.5, good: 0.75, excellent: 1.0 }
+            };
+            
+            let totalScore = 0;
+            let questionCount = 0;
+            
+            Object.keys(survey).forEach(question => {
+                if (questionScores[question] && questionScores[question][survey[question]] !== undefined) {
+                    totalScore += questionScores[question][survey[question]];
+                    questionCount++;
+                }
+            });
+            
+            return questionCount > 0 ? totalScore / questionCount : 0.5;
+        }
+        
+        function displayResult(elementId, score, type) {
+            const resultDiv = document.getElementById(elementId);
+            resultDiv.style.display = 'block';
+            
+            let className = 'neutral';
+            let interpretation = 'Neutral sentiment';
+            
+            if (score >= 0.7) {
+                className = 'positive';
+                interpretation = 'Positive sentiment - High mental health';
+            } else if (score <= 0.3) {
+                className = 'negative';
+                interpretation = 'Negative sentiment - Low mental health';
+            }
+            
+            resultDiv.className = `result ${className}`;
+            resultDiv.innerHTML = `
+                <div class="score-display">${type}: ${score.toFixed(3)}</div>
+                <div class="interpretation">${interpretation}</div>
+            `;
+        }
+    </script>
+</body>
+</html>
+
+
+

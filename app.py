@@ -1,8 +1,10 @@
-from flask import Flask, request, jsonify, send_from_directory
-import pandas as pd
-import numpy as np
+
+from flask import Flask, render_template, request, jsonify
 import joblib
-import os
+import numpy as np
+from sentiment_analyzer import SentimentAnalyzer
+import logging
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -12,79 +14,80 @@ scaler = joblib.load('scaler_final.pkl')
 le_gender = joblib.load('le_gender_final.pkl')
 le_target = joblib.load('le_target_final.pkl')
 
-# Print feature importance
-columns = ['Sentiment_Score', 'HRV', 'Sleep_Hours', 'Activity', 'Age', 'Gender', 'Work_Study_Hours']
-print("Feature Importance:")
-for feature, importance in zip(columns, model.feature_importances_):
-    print(f"{feature}: {importance:.4f}")
+# Initialize sentiment analyzer
+sentiment_analyzer = SentimentAnalyzer()
 
-# Serve the HTML file
+# Feature columns
+feature_columns = ['Sentiment_Score', 'HRV', 'Sleep_Hours', 'Activity', 'Age', 'Gender', 'Work_Study_Hours']
+
 @app.route('/')
-def serve_html():
-    return send_from_directory('.', 'index.html')
+def home():
+    return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        # Get the input data from the request
         data = request.get_json()
-        
-        # Convert to DataFrame
-        columns = ['Sentiment_Score', 'HRV', 'Sleep_Hours', 'Activity', 'Age', 'Gender', 'Work_Study_Hours']
-        new_data = pd.DataFrame([data], columns=columns)
-        
-        # Validate input
-        if new_data['Sleep_Hours'].iloc[0] < 0:
-            return jsonify({'error': 'Sleep_Hours cannot be negative'}), 400
-        if new_data['Work_Study_Hours'].iloc[0] < 0:
-            return jsonify({'error': 'Work_Study_Hours cannot be negative'}), 400
-        if new_data['Gender'].iloc[0] not in ['Male', 'Female']:
-            return jsonify({'error': 'Gender must be Male or Female'}), 400
-        
-        # Preprocess the data
-        new_data['Gender'] = le_gender.transform(new_data['Gender'])
-        new_data_scaled = scaler.transform(new_data)
-        
-        # Predict
-        prediction = model.predict(new_data_scaled)[0]
-        probs = model.predict_proba(new_data_scaled)[0]
-        health_status = {0: "Low", 1: "Moderate", 2: "High"}
-        result = health_status[prediction]
-        
-        # Include probabilities in the response
-        prob_dict = {health_status[i]: float(prob) for i, prob in enumerate(probs)}
-        
-        # Add a disclaimer for borderline predictions
-        max_prob = probs.max()
-        disclaimer = ""
-        if max_prob < 0.7:
-            disclaimer = "This prediction is uncertain (confidence below 70%). Please consult a professional for an accurate assessment."
-        
-        # Add a simple chatbot-like message
-        if result == "Low":
-            chatbot_message = "It looks like you might be experiencing low mental health. Consider reaching out to a friend or professional for support."
-        elif result == "Moderate":
-            chatbot_message = "Your mental health seems moderate. Keep up with self-care practices, and consider talking to someone if you feel overwhelmed."
-        else:  # High
-            chatbot_message = "Great news! Your mental health appears to be high. Keep maintaining your healthy habits!"
 
-        return jsonify({
-            'prediction': result,
-            'probabilities': prob_dict,
-            'disclaimer': disclaimer,
-            'model_accuracy': 'This model has a cross-validation accuracy of 80.8%.',
-            'chatbot_message': chatbot_message
-        })
+        # Prepare input data
+        input_data = np.array([
+            data['Sentiment_Score'],
+            data['HRV'],
+            data['Sleep_Hours'],
+            data['Activity'],
+            data['Age'],
+            le_gender.transform([data['Gender']])[0],
+            data['Work_Study_Hours']
+        ]).reshape(1, -1)
+
+        # Scale the input
+        input_scaled = scaler.transform(input_data)
+
+        # Make prediction
+        prediction = model.predict(input_scaled)[0]
+        probabilities = model.predict_proba(input_scaled)[0]
+
+        # Convert prediction back to original label
+        prediction_label = le_target.inverse_transform([prediction])[0]
+
+        # Create response
+        response = {
+            'prediction': prediction_label,
+            'probabilities': {
+                le_target.classes_[i]: float(prob) 
+                for i, prob in enumerate(probabilities)
+            },
+            'timestamp': datetime.now().isoformat()
+        }
+
+        return jsonify(response)
+
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-@app.route('/feedback', methods=['POST'])
-def feedback():
+@app.route('/calculate_sentiment', methods=['POST'])
+def calculate_sentiment():
     try:
-        feedback_data = request.get_json()
-        with open('feedback.log', 'a') as f:
-            f.write(f"Prediction: {feedback_data['prediction']}, Accurate: {feedback_data['accurate']}\n")
-        return jsonify({'message': 'Feedback received'})
+        data = request.get_json()
+
+        if 'text' in data:
+            score = sentiment_analyzer.calculate_text_sentiment(data['text'])
+        elif 'activities' in data:
+            score = sentiment_analyzer.calculate_behavioral_sentiment(data['activities'])
+        elif 'survey' in data:
+            score = sentiment_analyzer.calculate_survey_sentiment(data['survey'])
+        else:
+            score = sentiment_analyzer.calculate_combined_sentiment(
+                text_input=data.get('text'),
+                activities_data=data.get('activities'),
+                survey_responses=data.get('survey')
+            )
+
+        return jsonify({
+            'sentiment_score': round(score, 3),
+            'timestamp': datetime.now().isoformat()
+        })
+
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
