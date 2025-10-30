@@ -108,8 +108,8 @@ class TestMentalHealthApp(unittest.TestCase):
         
         self.assertIn('HRV cannot be negative', str(context.exception))
     
-    @patch('app_enhanced.model.predict')
-    @patch('app_enhanced.model.predict_proba')
+    @patch('app_enhanced.model.predict', create=True)
+    @patch('app_enhanced.model.predict_proba', create=True)
     def test_prediction_endpoint_success(self, mock_predict_proba, mock_predict):
         """Test successful prediction endpoint"""
         # Mock model responses
