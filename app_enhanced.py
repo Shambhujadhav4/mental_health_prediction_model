@@ -34,26 +34,36 @@ def before_request():
 def after_request(response):
     return log_response_info(response)
 
-# Load the model and preprocessing objects
-try:
-    model = joblib.load(Config.MODEL_PATH)
-    scaler = joblib.load(Config.SCALER_PATH)
-    le_gender = joblib.load(Config.LE_GENDER_PATH)
-    le_target = joblib.load(Config.LE_TARGET_PATH)
-    app.logger.info("Model and preprocessing objects loaded successfully")
-except Exception as e:
-    app.logger.error(f"Failed to load model: {str(e)}")
-    raise
+# Load the model and preprocessing objects (lazily controllable via env)
+model = None
+scaler = None
+le_gender = None
+le_target = None
+
+_load_on_startup = os.getenv("LOAD_MODELS_ON_STARTUP", "1") == "1"
+if _load_on_startup:
+    try:
+        model = joblib.load(Config.MODEL_PATH)
+        scaler = joblib.load(Config.SCALER_PATH)
+        le_gender = joblib.load(Config.LE_GENDER_PATH)
+        le_target = joblib.load(Config.LE_TARGET_PATH)
+        app.logger.info("Model and preprocessing objects loaded successfully")
+    except Exception as e:
+        app.logger.error(f"Failed to load model: {str(e)}")
+        raise
+else:
+    app.logger.info("Skipping model load on startup due to LOAD_MODELS_ON_STARTUP=0")
 
 # Initialize sentiment analyzer
 sentiment_analyzer = SentimentAnalyzer()
 app.logger.info("Sentiment analyzer initialized successfully")
 
-# Print feature importance
+# Print feature importance when model is available
 columns = Config.FEATURE_COLUMNS
-app.logger.info("Feature Importance:")
-for feature, importance in zip(columns, model.feature_importances_):
-    app.logger.info(f"{feature}: {importance:.4f}")
+if model is not None and hasattr(model, 'feature_importances_'):
+    app.logger.info("Feature Importance:")
+    for feature, importance in zip(columns, model.feature_importances_):
+        app.logger.info(f"{feature}: {importance:.4f}")
 
 # Serve the HTML file
 @app.route('/')
