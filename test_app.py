@@ -109,11 +109,16 @@ class TestMentalHealthApp(unittest.TestCase):
         self.assertIn('HRV cannot be negative', str(context.exception))
     
     @patch('app_enhanced.model', new_callable=MagicMock)
-    def test_prediction_endpoint_success(self, mock_model):
+    @patch('app_enhanced.scaler', new_callable=MagicMock)
+    @patch('app_enhanced.le_gender', new_callable=MagicMock)
+    def test_prediction_endpoint_success(self, mock_le_gender, mock_scaler, mock_model):
         """Test successful prediction endpoint"""
         # Mock model responses
         mock_model.predict.return_value = np.array([1])  # Moderate
         mock_model.predict_proba.return_value = np.array([[0.2, 0.6, 0.2]])  # Low, Moderate, High
+        # Mock preprocessing
+        mock_le_gender.transform.return_value = pd.Series([0])
+        mock_scaler.transform.return_value = np.zeros((1, len(Config.FEATURE_COLUMNS)))
         
         valid_data = {
             'Sentiment_Score': 0.5,
